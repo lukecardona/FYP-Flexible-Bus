@@ -9,4 +9,4 @@
 // print results
 out body;
 >;
-out skel qt;w
+out skel qt;
