@@ -1,1 +1,2 @@
 pip install pettingzoo==1.24.2
+pip install pygeodesic==0.1.8
