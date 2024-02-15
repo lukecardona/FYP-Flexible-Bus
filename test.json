@@ -1,0 +1,57 @@
+{
+    "code": "Ok",
+    "routes": [
+        {
+            "geometry": "_razEuupwADADAD?BBDD@FFLFDFBD?JCRADGLEF?H@FBJJTb@HLHLBLBNABBRBHj@~@~@vAv@lADHh@x@LR|@vAl@|@BDJNdAdB`@j@JPHRFVFT?BD`@TjETjAHVNf@FTTR\\Hn@NPLFJBJ?\\QbAWpAKp@WtAKj@{@jFgA`GGVMVQVQJ_@LM@_ABa@Bk@BYBW@aAFuAB{AMkC[mAQiH_AY@OJOTId@CvDD|@Nr@\\~@n@`Bn@hBXjA`CtJLj@Hn@Bl@?XCVKr@Kl@m@nCGXOr@CJS|@IZMl@W`AY`ASHGBG@MCGCIIIQAe@TeAPq@@O@QMIGEKEg@OEACAcBi@Ic@UuAa@}B_@yB`Cq@^xBTnAF\\BJNl@HLDDDDFBF?`@@~Ag@^STQR[Tu@Jk@B{@Ag@OkASaAkBuHYmA[{@_BsEQu@G_AByB?cABSBSFMHIFGJEJCN?J@hANdN~AV@VCXUJa@BYLQLIPGTBt@\\JFXNl@\\PFXBr@Cj@a@JQJWF[hC{Mx@{DVqANcAE[KOQGKDMPCNBPJ\\Vz@\\x@f@tATf@Th@Z`@^Z`@XNNTVpAnCV^VXTV^\\\\VRFVPFFNNNTT`@Zh@JRHHLPXV~EpCf@\\dAx@LLb@n@l@nAX|@J`@Nj@NdARnAf@xAv@nAp@z@`@h@tHxJf@d@VVVLVJbAPp@Bv@M\\Kb@Q\\Uz@u@n@u@\\g@Xk@Rc@Ni@Lk@Hk@Bg@Bk@Ae@Ck@Kq@Ms@Ks@EIIK[_@SKOQGY?YDYZe@LG`@QnB]r@M`@OtIuAl@@bBL~DTj@@j@Kl@q@\\eAxAiIVgCZ_C`@gCPy@Ne@`@_AbAuA`@k@\\c@t@yAXq@f@oAj@mAb@s@|AsBjBkBzAw@dBy@vFqBnA_@xAs@pA{@hAy@~@{@v@eAh@u@z@sAr@sAh@uAv@mBf@mAfB}E`A}CZmA`A{ERgALy@z@}FJo@R{@L]Hu@E_@QYyAwAWi@wDoFiAcBgAiA_@c@s@o@aA}@uAcAuA{@uAs@uAs@CAOMMIk@kAGSIYKw@OkAYmA?C_@i@A?ECCCEEAGAG?G@ECSEg@ACm@gBK_@Ie@m@cEWwA]wACIGOm@gAEIGIuAaAm@_@g@[OKIEIGGGCAi@SgJVS?CHEDEDG@IAIAEIEK?M@KDIDEHMPy@Dm@Fq@HuA?GC}AG}ACk@?EW}DEa@c@_Bc@iBEWAG?C?E@ABMLSXa@TO@CDEFIj@q@LO|@cALUHSHYD[T{BDmA?}@DiE?m@AYCu@Eo@Is@CWEWEMEOG_@AG",
+            "legs": [
+                {
+                    "steps": [],
+                    "distance": 3409.7,
+                    "duration": 248.3,
+                    "summary": "",
+                    "weight": 262.7
+                },
+                {
+                    "steps": [],
+                    "distance": 9867.3,
+                    "duration": 645.1,
+                    "summary": "",
+                    "weight": 645.1
+                }
+            ],
+            "distance": 13277,
+            "duration": 893.4,
+            "weight_name": "routability",
+            "weight": 907.8
+        }
+    ],
+    "waypoints": [
+        {
+            "hint": "PL8AgP___38AAAAAEAAAAEsAAAAwAAAAbH4SPuQkUUDxw3hBaxAjQQAAAAAIAAAAJAAAABgAAAAaAAAAK2LdAOCzIwJqYt0A_LMjAgQAfwmZaEfy",
+            "distance": 6.482352,
+            "name": "",
+            "location": [
+                14.508587,
+                35.89424
+            ]
+        },
+        {
+            "hint": "3MMAgP___38YAAAAIgAAAAAAAAAEAAAAfuQXQtWzYkEAAAAAxbe-QBgAAAAiAAAAAAAAAAQAAAAaAAAA9BvdAGO8IwIFHN0AO7wjAgAAvw-ZaEfy",
+            "distance": 4.696186,
+            "name": "Triq ix-Xatt ta' Ta' Xbiex",
+            "location": [
+                14.490612,
+                35.896419
+            ]
+        },
+        {
+            "hint": "D1QAgP___38DAAAACwAAABoAAAA4AAAARpCIQFnE-UAEfvFBVGp5QgMAAAALAAAAGgAAADgAAAAaAAAAftTdAJBaIwJ21N0AzlojAgMATwWZaEfy",
+            "distance": 6.916973,
+            "name": "Triq Villabate",
+            "location": [
+                14.537854,
+                35.871376
+            ]
+        }
+    ]
+}
