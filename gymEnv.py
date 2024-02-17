@@ -6,6 +6,7 @@ import numpy as np
 
 import folium
 import polyline
+import webbrowser
 
 from ipyleaflet import Map,AwesomeIcon, Marker
 
@@ -100,8 +101,8 @@ class GymBusHandler(bushandler.BusHandler):
                 [vehicle.getPosition().getLatitude(),vehicle.getPosition().getLongitude()],
                 icon=folium.Icon(icon="bus",prefix="fa",color=self.colors[i]),
                 popup="Bus "+str(i)).add_to(map)
-        display(map)
-
+        map.save("map.html")
+        webbrowser.open("map.html")
 
 class BusRoutingSystem(gym.Env):
     def __init__(self,numberOfBuses,numberOfRequests,render_mode=None):
@@ -150,7 +151,7 @@ class BusRoutingSystem(gym.Env):
 
         self.busHandler.updateState(done)
 
-        reward = self.busHandler.getReward()
+        reward = self.busHandler.getReward(action[0])
         observation = self._get_obs()
         info = self._get_info()
 
@@ -170,5 +171,6 @@ class BusRoutingSystem(gym.Env):
     def close(self):
         pass
 
-busRoutingSystem = BusRoutingSystem(5,10)
-obs,info = busRoutingSystem.reset()
+env = BusRoutingSystem(5,10,render_mode=None)
+
+
