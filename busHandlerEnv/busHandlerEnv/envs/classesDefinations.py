@@ -1,4 +1,4 @@
-import routeLinkedList
+from .routeLinkedList import RouteLinkedList
 
 import requests
 import itertools
@@ -124,7 +124,7 @@ class Request():
 
 class Route:
     def __init__(self):
-        self.routeList = routeLinkedList.RouteLinkedList()
+        self.routeList = RouteLinkedList()
         self.idCounter = 0 #Used to give each request pair a unique id that is small in memory size
 
     def __str__(self):
@@ -166,7 +166,7 @@ class Route:
         return shortestRoute
 
     def _updateRoute(self, route):
-        self.routeList = routeLinkedList.RouteLinkedList()
+        self.routeList = RouteLinkedList()
         for cord in route:
             self.routeList.insertAtEnd(cord)
         

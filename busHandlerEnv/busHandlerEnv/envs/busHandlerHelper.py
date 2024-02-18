@@ -1,7 +1,7 @@
-import classesDefinations
+from  .classesDefinations import Cords,Vehicle,Request
 
 CAPACITY = 10
-BUS_ORIGIN = classesDefinations.Cords(35.8942679, 14.5086503) #CORDS OF THE 15 VALLETTA BUS BAY)
+BUS_ORIGIN = Cords(35.8942679, 14.5086503) #CORDS OF THE 15 VALLETTA BUS BAY)
 BUS_STOP_DATA_PATH = "./Data/BusStopsMalta/export.json"
 
 from datetime import datetime, timedelta
@@ -57,7 +57,7 @@ class BusHandler():
     def initVehiles(self, vehicleAmount):
         vehicles = []
         for i in range(vehicleAmount):
-            vehicles.append(classesDefinations.Vehicle(i, CAPACITY, BUS_ORIGIN))
+            vehicles.append(Vehicle(i, CAPACITY, BUS_ORIGIN))
         return vehicles
 
     def initRequests(self, numberOfRequests):
@@ -82,11 +82,11 @@ class BusHandler():
             lon2 = elements[r2]["lon"]
 
             #Create the request Cords
-            reqPickup = classesDefinations.Cords(lat1, lon1)
-            reqDropoff = classesDefinations.Cords(lat2, lon2)
+            reqPickup = Cords(lat1, lon1)
+            reqDropoff = Cords(lat2, lon2)
 
             #Create the request
-            requestList.append(classesDefinations.Request(requestId, reqPickup, reqDropoff, timeIntervals[i],random.randint(1, 3)))
+            requestList.append(Request(requestId, reqPickup, reqDropoff, timeIntervals[i],random.randint(1, 3)))
 
             #Increment the requestId
             requestId += 1

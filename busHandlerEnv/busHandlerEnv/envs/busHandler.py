@@ -1,5 +1,4 @@
-import bushandler
-
+from .busHandlerHelper import BusHandler
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -21,7 +20,7 @@ busIcon = AwesomeIcon(
     spin=False
 )
 
-class GymBusHandler(bushandler.BusHandler):
+class GymBusHandler(BusHandler):
     def __init__(self, numberOfBuses,numberOfRequests):
         super().__init__(numberOfBuses,numberOfRequests)
         self.numberOfBuses = numberOfBuses
@@ -112,10 +111,10 @@ class BusRoutingSystem(gym.Env):
         self.numberOfBuses = numberOfBuses
         self.numberOfRequests = numberOfRequests
        
-        self.action_space = spaces.Box(low=np.array([0,0]), high=np.array([1,self.numberOfBuses-1]), dtype=np.int8)
+        self.action_space = spaces.Box(low=np.array([0,0]), high=np.array([1,self.numberOfBuses-1]),shape=(2,), dtype=np.int32)
         
         self.observation_space = spaces.Dict({
-            "request": spaces.Box(low=0, high=1, shape=(5,), dtype=np.float32),
+            "request": spaces.Box(low=0, high=90, shape=(5,), dtype=np.float32),
             "buses": spaces.Dict({
                 "locations": spaces.Box(low=0, high=90, shape=(self.numberOfBuses,2), dtype=np.float32),
                 "passenger_counts": spaces.Box(low=0, high=self.busHandler.getCapacity(), shape=(self.numberOfBuses,), dtype=np.int8),
@@ -166,11 +165,8 @@ class BusRoutingSystem(gym.Env):
         observation = self._get_obs()
         if self.render_mode == "human":
             self._render_frame()
+
         return observation,info
     
     def close(self):
         pass
-
-env = BusRoutingSystem(5,10,render_mode=None)
-
-
