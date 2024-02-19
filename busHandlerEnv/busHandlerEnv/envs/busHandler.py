@@ -131,8 +131,20 @@ class BusHandler(gym.Env):
         assert render_mode is None or render_mode in self.metadata["render_modes"] #Ensure that the render mode selected is validd
         self.render_mode = render_mode
 
+    def _get_mask(self,obs):
+        npMask = np.zeros((self.numberOfBuses,2), dtype=np.int8)
+        requestAmount = obs["request"][4]
+        for i,passengerAmount in enumerate(obs["buses"]["passenger_counts"]):
+            if passengerAmount + requestAmount < self.busHandler.vehicles[i].getCapacity():
+                npMask[i] = [1,1]
+            else:
+                npMask[i] = [0,0]
+        pass
+
     def _get_obs(self):
-        return {"request": self.busHandler.getRequestObservation(), "buses": {"locations": self.busHandler.getBusesLocationsObservation(), "passenger_counts": self.busHandler.getPassengerCountsObservation(), "routes": self.busHandler.getBusesRoutesObservation()}}
+        obs = {"request": self.busHandler.getRequestObservation(), "buses": {"locations": self.busHandler.getBusesLocationsObservation(), "passenger_counts": self.busHandler.getPassengerCountsObservation(), "routes": self.busHandler.getBusesRoutesObservation()}}
+        mask = self._get_mask(obs)
+        return obs
     
     def _get_info(self):
         return{
