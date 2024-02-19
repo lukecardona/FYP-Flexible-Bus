@@ -4,6 +4,15 @@ import requests
 import itertools
 import math
 
+from urllib3.util import Retry
+from requests.adapters import HTTPAdapter
+
+SESSION = requests.Session()
+RETRY = Retry(connect=5, read=5, backoff_factor=0.3)
+ADAPTER = HTTPAdapter(max_retries=RETRY)
+SESSION.mount('http://', ADAPTER)
+SESSION.mount('https://', ADAPTER)
+
 REQUESTSTATES = {
     "NOT_CALLED": 0,
     "WAITING": 1,
@@ -191,7 +200,7 @@ class Route:
 
         middle_coords = middle_coords[:-1]
         url = f"http://{OSRM_HOST}:{OSRM_PORT}/route/v1/driving/{start_coords};{middle_coords}?overview=full&steps={steps}"
-        response = requests.get(url)
+        response = SESSION.get(url)
         # Parsing the response
         if response.status_code == 200:
             data = response.json()
@@ -236,7 +245,6 @@ class Route:
         return duration
     
     def getListOfCords(self):
-        print("Route: ", self.routeList.printList())
         self.routeList.getListOfCords()
     
     def getRouteHead(self):

@@ -3,11 +3,9 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 
-import folium
 import polyline
-import webbrowser
-
-from ipyleaflet import Map,AwesomeIcon, Marker
+import ipyleaflet
+from ipyleaflet import Map,AwesomeIcon,Marker,Polyline
 
 ACCEPTED = 0
 REJECTED = 1
@@ -25,10 +23,12 @@ class GymBusHandler(BusHandler):
         super().__init__(numberOfBuses,numberOfRequests)
         self.numberOfBuses = numberOfBuses
         self.numberOfRequests = numberOfRequests
-        self.map = folium.Map(location=[35.918915, 14.372416], zoom_start=12)
-        
+
+    def initMap(self):
+        self.map = Map(center=[35.908915,14.442416], zoom=11)
+        display(self.map)
         #create 10 colors 
-        self.colors = ["red","blue","green","purple","orange","darkred","lightred","beige","darkblue","darkgreen"]
+        self.colors = ["red","blue","green","purple","orange","darkred","lightred","black","darkblue","darkgreen"]
 
     def _getBusRoute(self, index):
         route = self.vehicles[index].getListOfCords()
@@ -37,6 +37,11 @@ class GymBusHandler(BusHandler):
             for i in range(len(route)):
                 npRoute[i] = [route[i].getLatitude(),route[i].getLongitude()]
         return npRoute
+    
+    def _clearMap(self):
+        for layer in self.map.layers:
+            if not isinstance(layer, ipyleaflet.TileLayer):
+                self.map.remove_layer(layer)
 
     def getRequestObservation(self):
         #Create an np array of the following format:
@@ -82,26 +87,27 @@ class GymBusHandler(BusHandler):
             acceptedReward += self.currentRequest.getPassengerAmount()*REWARD_PER_PASSENGER*-1
         
         for vehicle in self.vehicles:
-            distanceReward += (vehicle.getDistanceTravelled()*-1)
-            waitingTimeReward += (vehicle.getRequestWaitingTime()*-1)
+            distanceReward += ((vehicle.getDistanceTravelled()*-1)/1000)
+            waitingTimeReward += ((vehicle.getRequestWaitingTime()*-1)/60)
 
         reward = acceptedReward + distanceReward + waitingTimeReward
         return reward
     
     def renderRoutes(self):
-        map = self.map
+
+        self._clearMap()
+
         for i,vehicle in enumerate(self.vehicles):
             if vehicle.getRouteSize() > 0:
                 routeGeometry = vehicle.getRouteGeometry()
                 route =  polyline.decode(routeGeometry)
-                folium.PolyLine(route, color=self.colors[i], weight=2.5, opacity=1).add_to(map)
+                routeLine = Polyline(locations=route, color=self.colors[i], weight=2, opacity=1)
+                self.map.add_layer(routeLine)
 
-            folium.Marker(
-                [vehicle.getPosition().getLatitude(),vehicle.getPosition().getLongitude()],
-                icon=folium.Icon(icon="bus",prefix="fa",color=self.colors[i]),
-                popup="Bus "+str(i)).add_to(map)
-        map.save("map.html")
-        webbrowser.open("map.html")
+            vehicleLocation = vehicle.getPosition()
+            marker = Marker(location=(vehicleLocation.getLatitude(),vehicleLocation.getLongitude()),
+                             icon=AwesomeIcon(name='bus', marker_color=self.colors[i], icon_color='white', spin=False))
+            self.map.add_layer(marker)
 
 class BusHandler(gym.Env):
     def __init__(self,numberOfBuses,numberOfRequests,render_mode=None):
@@ -157,13 +163,17 @@ class BusHandler(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
         
-        return observation, reward, done, info
+        truncated = done
+
+        return observation, reward, done, truncated, info
     
-    def reset(self, seed=None):
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         self.busHandler = GymBusHandler(self.numberOfBuses,self.numberOfRequests)
         info = self._get_info()
         observation = self._get_obs()
         if self.render_mode == "human":
+            self.busHandler.initMap()
             self._render_frame()
 
         return observation,info

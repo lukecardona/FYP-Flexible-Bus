@@ -1,6 +1,6 @@
 from  .classesDefinations import Cords,Vehicle,Request
 
-CAPACITY = 10
+CAPACITY = 5
 BUS_ORIGIN = Cords(35.8942679, 14.5086503) #CORDS OF THE 15 VALLETTA BUS BAY)
 BUS_STOP_DATA_PATH = "C:/Users/lukec/Documents/Thesis/BusRouting/FYP-Flexible-Bus/Data/BusStopsMalta/export.json"
 
@@ -110,6 +110,8 @@ class BusHandler():
         return self.endCheck()
         
     def acceptRequest(self, vehicleIndex):
+        vehicleIndex = int(vehicleIndex)
+
         #Error Checking
         if(vehicleIndex >= len(self.vehicles)):
             raise ValueError("Vehicle index exceeded the vehicles list length.")
@@ -144,12 +146,12 @@ class BusHandler():
         totalDistance = 0
         for vehicle in self.vehicles:
             if vehicle.getRouteSize() > 0:
-                totalDistance += vehicle.getDistance()
+                totalDistance += vehicle.getRouteDistance()
         return totalDistance
     
     def getTotalTime(self):
         totalTime = 0
         for vehicle in self.vehicles:
             if vehicle.getRouteSize() > 0:
-                totalTime += vehicle.getTime()
+                totalTime += vehicle.getRouteTime()
         return totalTime
