@@ -106,7 +106,9 @@ class GymBusHandler(BusHandler):
 
             vehicleLocation = vehicle.getPosition()
             marker = Marker(location=(vehicleLocation.getLatitude(),vehicleLocation.getLongitude()),
-                             icon=AwesomeIcon(name='bus', marker_color=self.colors[i], icon_color='white', spin=False))
+                             icon=AwesomeIcon(name='bus', marker_color=self.colors[i], icon_color='white', spin=False),
+                             draggable=False,
+                             title="Bus "+str(i))
             self.map.add_layer(marker)
 
 class BusHandler(gym.Env):
@@ -117,7 +119,7 @@ class BusHandler(gym.Env):
         self.numberOfBuses = numberOfBuses
         self.numberOfRequests = numberOfRequests
        
-        self.action_space = spaces.Box(low=np.array([0,0]), high=np.array([1,self.numberOfBuses-1]),shape=(2,), dtype=np.int32)
+        self.action_space = spaces.MultiDiscrete([2, self.numberOfBuses])
         
         self.observation_space = spaces.Dict({
             "request": spaces.Box(low=0, high=90, shape=(5,), dtype=np.float32),
