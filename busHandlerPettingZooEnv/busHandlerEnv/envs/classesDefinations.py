@@ -1,4 +1,4 @@
-from .routeLinkedList import RouteLinkedList
+from routeLinkedList import RouteLinkedList
 
 import requests
 import itertools

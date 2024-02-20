@@ -1,4 +1,4 @@
-from  .classesDefinations import Cords,Vehicle,Request
+from  classesDefinations import Cords,Vehicle,Request
 
 CAPACITY = 5
 BUS_ORIGIN = Cords(35.8942679, 14.5086503) #CORDS OF THE 15 VALLETTA BUS BAY)
