@@ -1,4 +1,4 @@
-from .busHandlerHelper import BusHandler
+from busHandlerHelper import BusHandler
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -161,7 +161,7 @@ class GymBusHandler(BusHandler):
         if self.map != None:
             self._clearMap()
 
-class BusHandlerEnv(AECEnv):
+class BusHandler(AECEnv):
     def __init__(self,numberOfBuses,numberOfRequests,render_mode=None):
         self.metadata = {'render_modes': ['human'], "name": "BusHandler-v0"}
         
@@ -171,8 +171,8 @@ class BusHandlerEnv(AECEnv):
 
         self.possible_agents = list(range(self.numberOfBuses)) 
        
-        self._action_spaces = {agent: spaces.Discrete(2) for agent in self.possible_agents}#Accept or reject the request
-        self._observation_spaces = { 
+        self.action_spaces = {agent: spaces.Discrete(2) for agent in self.possible_agents}#Accept or reject the request
+        self.observation_spaces = { 
             agent: 
                 spaces.Dict({
                 "observation": 
@@ -183,12 +183,9 @@ class BusHandlerEnv(AECEnv):
                             "passenger_count": spaces.Discrete(self.busHandler.getCapacity()),
                             "route": spaces.Box(low=0, high=90, shape=(self.busHandler.getCapacity()*2,2), dtype=np.float32)
                         }),
-                    
+                    }),
                 "action_mask": spaces.Box(low=0, high=1, shape=(2,), dtype=np.int8)
-                }),
             }) for agent in self.possible_agents}
-        
-        print(self._observation_spaces[0]["observation"]["bus"]["route"].shape)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"] #Ensure that the render mode selected is validd
         self.render_mode = render_mode
@@ -216,10 +213,10 @@ class BusHandlerEnv(AECEnv):
             self.busHandler.renderRoutes()
 
     def observation_space(self, agent):
-        return self._observation_spaces[agent]
+        return self.observation_spaces[agent]
     
     def action_space(self, agent):
-        return self._action_spaces[agent]
+        return self.action_spaces[agent]
     
     def observe(self, agent):
         return self._get_obs(agent)
@@ -274,3 +271,126 @@ class BusHandlerEnv(AECEnv):
     
     def close(self):
         pass
+
+class FlattenObservation(gym.ObservationWrapper):
+
+    def __init__(self, env: gym.Env):
+        super().__init__(env)
+        for agent in self.env.possible_agents:
+            self.observation_spaces[agent]["observation"] = spaces.flatten_space(env.observation_spaces[agent]["observation"])
+
+def _get_env():
+    env = BusHandler(5,50)
+    env = FlattenObservation(env)
+    return env
+
+env = _get_env()
+
+import os
+from typing import Optional, Tuple
+
+import gymnasium
+import numpy as np
+import torch
+from tianshou.data import Collector, VectorReplayBuffer
+from tianshou.env import DummyVectorEnv
+from tianshou.env.pettingzoo_env import PettingZooEnv
+from tianshou.policy import BasePolicy, DQNPolicy, MultiAgentPolicyManager, RandomPolicy
+from tianshou.trainer import offpolicy_trainer
+from tianshou.utils.net.common import Net
+
+def _get_agents(
+        agent_learn: Optional[BasePolicy] = None,
+        optim: Optional[torch.optim.Optimizer] = None,
+) -> Tuple[BasePolicy, torch.optim.Optimizer, list]:
+    env =  _get_env()
+    observation_space = (
+        env.unwrapped.observation_space["observation"]
+        if isinstance(env.unwrapped.observation_space, gym.spaces.Dict)
+        else env.observation_space
+    )
+
+    if agent_learn is None:
+        #model
+        net = Net(
+            state_shape=observation_space["observation"],
+            action_shape=env.action_space.shape or env.action_space.n,
+            hidden_sizes=[128,128,128,128],
+            device="cuda" if torch.cuda.is_available() else "cpu",
+        ).to("cuda" if torch.cuda.is_available() else "cpu")
+
+        if optim is None:
+            optim = torch.optim.Adam(net.parameters(), lr=1e-4)
+        
+        agent_learn = DQNPolicy(
+            model=net, optim=optim, discount_factor=0.99, estimation_step=10, target_update_freq=640
+        )
+    
+    agents = [agent_learn for _ in range(env.numberOfBuses)]
+    policy = MultiAgentPolicyManager(agents,env)
+    return policy, optim, env.agents
+    
+if __name__ == "__main__":
+    # ======== Step 1: Environment setup =========
+    train_envs = DummyVectorEnv([_get_env for _ in range(10)])
+    test_envs = DummyVectorEnv([_get_env for _ in range(10)])
+
+    # ======== Step 2: Agent setup =========
+    policy, optim, agents = _get_agents()
+
+    # ======== Step 3: Collector setup =========
+    train_collector = Collector(
+        policy,
+        train_envs,
+        VectorReplayBuffer(20_000, len(train_envs)),
+        exploration_noise=True,
+    )
+    test_collector = Collector(policy, test_envs, exploration_noise=True)
+    # policy.set_eps(1)
+    train_collector.collect(n_step=64 * 10)  # batch size * training_num
+
+    # ======== Step 4: Callback functions setup =========
+    def save_best_fn(policy):
+        for i in range(len(agents)):
+            model_save_path = os.path.join("log", "ttt", "dqn", "agent"+str(i), "policy.pth")
+            os.makedirs(os.path.join("log", "ttt", "dqn"), exist_ok=True)
+            torch.save(policy.policies[agents[i]].state_dict(), model_save_path)
+
+    def stop_fn(mean_rewards):
+        return mean_rewards >= 10000
+
+    def train_fn(epoch, env_step):
+        for i in range(len(agents)):
+            policy.policies[agents[i]].set_eps(0.1)
+
+    def test_fn(epoch, env_step):
+        for i in range(len(agents)):
+            policy.policies[agents[i]].set_eps(0.05)
+
+    def reward_metric(rews):
+        return rews[:, 1]
+
+    # ======== Step 5: Run the trainer =========
+    result = offpolicy_trainer(
+        policy=policy,
+        train_collector=train_collector,
+        test_collector=test_collector,
+        max_epoch=50,
+        step_per_epoch=1000,
+        step_per_collect=50,
+        episode_per_test=10,
+        batch_size=64,
+        train_fn=train_fn,
+        test_fn=test_fn,
+        stop_fn=stop_fn,
+        save_best_fn=save_best_fn,
+        update_per_step=0.1,
+        test_in_train=False,
+        reward_metric=reward_metric,
+    )
+
+    # return result, policy.policies[agents[1]]
+    print(f"\n==========Result==========\n{result}")
+    print("\n(the trained policy can be accessed via policy.policies)")
+       
+    
