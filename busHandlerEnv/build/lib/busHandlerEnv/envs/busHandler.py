@@ -29,7 +29,7 @@ class GymBusHandler(BusHandler):
         self.map = Map(center=[35.908915,14.442416], zoom=11)
         display(self.map)
         #create 10 colors 
-        self.colors = ["red","blue","green","purple","orange","darkred","lightred","black","darkblue","darkgreen"]
+        self.colors = ["red","blue","green","purple","orange","darkred","white","black","darkblue","darkgreen"]
 
     def _getBusRoute(self, index):
         route = self.vehicles[index].getListOfCords()
