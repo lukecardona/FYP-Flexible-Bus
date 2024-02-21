@@ -245,7 +245,7 @@ class Route:
         return duration
     
     def getListOfCords(self):
-        self.routeList.getListOfCords()
+        return self.routeList.getListOfCords()
     
     def getRouteHead(self):
         return self.routeList.head
