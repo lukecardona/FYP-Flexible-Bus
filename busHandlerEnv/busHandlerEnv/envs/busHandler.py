@@ -99,7 +99,7 @@ class GymBusHandler(BusHandler):
         self._clearMap()
 
         for i,vehicle in enumerate(self.vehicles):
-            print("Vehicle "+str(i),vehicle.getRouteSize())
+            # print("Vehicle "+str(i),vehicle.getRouteSize())
             if vehicle.getRouteSize() > 0:
                 routeGeometry = vehicle.getRouteGeometry()
                 route =  polyline.decode(routeGeometry)
@@ -107,8 +107,8 @@ class GymBusHandler(BusHandler):
                 self.map.add_layer(routeLine)
 
                 routeCords = vehicle.getListOfCords()
-                print("Route cords",routeCords)
-                print(vehicle.route)
+                # print("Route cords",routeCords)
+                # print(vehicle.route)
                 for j,cord in enumerate(routeCords):
                     if cord.start:
                         color = "white"
@@ -178,8 +178,29 @@ class BusHandler(gym.Env):
     def _render_frame(self):
         if self.render_mode == "human":
             self.busHandler.renderRoutes()
+
+    def _illegalAction(self,action):
+        if action[0] == REJECTED:
+            return False
+
+        if action[0] ==ACCEPTED:
+            if self.busHandler.vehicles[action[1]].getCurrentCapacity() + self.busHandler.currentRequest.getPassengerAmount() > self.busHandler.vehicles[action[1]].getCapacity():
+                return True
+            else:
+                return False
     
     def step(self,action):
+
+        if self._illegalAction(action):
+            if self.render_mode == "human":
+                print("Illegal action")
+            reward = self.numberOfBuses*-125
+            observation = self._get_obs()
+            info = self._get_info()
+            done = False
+            truncated = False
+            return observation, reward, done, truncated, info
+
         accepted = action[0]
         done = False
         reward = 0
