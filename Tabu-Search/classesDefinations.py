@@ -61,6 +61,9 @@ class Cords:
     def __str__(self):
         return "lat: "+ str(self.latidude) + ",long: " + str(self.longitude)
     
+    def __repr__(self):
+        return self.__str__()
+    
     def getLatitude(self):
         return self.latidude
     
@@ -77,8 +80,11 @@ class Request_Cords(Cords):
     def __str__(self):
         return "Req_Id: " + str(self.request_id) + ", lat: "+ str(self.latidude) + ", long: " + str(self.longitude) + ", " + str(self.start)
     
+    def __repr__(self):
+        return self.__str__()
+    
     def __eq__(self, requestCord):
-        if self.request_id == requestCord.getRequestId() and self.start == requestCord.getStart():
+        if self.request_id == requestCord:
             return True
         else:
             return False
@@ -234,19 +240,17 @@ class Route:
         else:
             Exception("Failed to get a response from the OSRM server")
     
-    def optimizeRoute(self, vehiclePosition):
-        cordsArray = self.routeList.getListOfCords()
-        permutations = list(itertools.permutations(cordsArray))
-        validPermuations = self._getValidPermutations(permutations)
-        shortestRoute = self._findShortestRoute(validPermuations,vehiclePosition) #Find the shortest route
-        self._updateRoute(shortestRoute) #Update the route
+    # def optimizeRoute(self, vehiclePosition):
+    #     cordsArray = self.routeList.getListOfCords()
+    #     permutations = list(itertools.permutations(cordsArray))
+    #     validPermuations = self._getValidPermutations(permutations)
+    #     shortestRoute = self._findShortestRoute(validPermuations,vehiclePosition) #Find the shortest route
+    #     self._updateRoute(shortestRoute) #Update the route
 
     def handleAddRequest(self, request, vehiclePosition):
         self.routeList.insertAtEnd(request.origin)
         self.routeList.insertAtEnd(request.destination)
         self.idCounter += 1
-        if self.routeList.getSize() > 2:
-            self.optimizeRoute(vehiclePosition)
         return (self.idCounter-1) #Return the id of the request pair
 
     def handleNextArrival(self):
@@ -482,6 +486,9 @@ class Vehicle():
     def printRoute(self):
         print("Vehile "+ str(self.vehicle_id)+" route: "+str(self.route))
 
+    def getId(self):
+        return self.vehicle_id
+    
     def getRouteDistance(self):
         return self.route.calculateTotalDistance(self.currentPosition)
     
