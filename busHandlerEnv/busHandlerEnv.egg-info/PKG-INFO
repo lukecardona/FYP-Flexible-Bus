@@ -1,4 +1,0 @@
-Metadata-Version: 2.1
-Name: busHandlerEnv
-Version: 0.0.1
-Requires-Dist: gymnasium==0.29.1
