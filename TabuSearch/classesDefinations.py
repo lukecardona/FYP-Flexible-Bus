@@ -22,7 +22,6 @@ REQUESTSTATES = {
     "COMPLETED": 4,
     "REJECTED": 5
     }
-
 VEHICLESTATES = {
     "IDLE":0,
     "MOVING":1,
@@ -119,7 +118,7 @@ class Request():
         self.passengerAmount = passengerAmount
 
     def __str__(self):
-        return "Request: id: {}, passengerAmount: {}, time: {}, origin: {}, destination: {},".format(self.request_id, self.passengerAmount, self.origin, self.destination)
+        return f"Request id: {self.request_id}, Origin: {self.origin}, Destination: {self.destination}, Time: {self.time}, State: {self.state}"
     
     def __repr__(self):
         return self.__str__()
@@ -251,12 +250,6 @@ class Route:
     #     shortestRoute = self._findShortestRoute(validPermuations,vehiclePosition) #Find the shortest route
     #     self._updateRoute(shortestRoute) #Update the route
 
-    def handleAddRequest(self, request, vehiclePosition):
-        self.routeList.insertAtEnd(request.origin)
-        self.routeList.insertAtEnd(request.destination)
-        self.idCounter += 1
-        return (self.idCounter-1) #Return the id of the request pair
-
     def handleNextArrival(self):
         cordPoint = self.routeList.deleteAtStart()
         return cordPoint
@@ -338,11 +331,18 @@ class BusStatistics():
         if steps:
             self.addRequestWaitingTime(time)
 
-    def acceptRequest(self,requestId,passengerAmount):
+    def acceptRequest(self,requestId,passengerAmount,currentWaitingTime=0):
         self._totalRequests += 1
         self._totalPassengers += passengerAmount
-        self._requestWaitingTime[requestId] = 0
+        self._requestWaitingTime[requestId] = currentWaitingTime
 
+    def removeRequest(self,requestId, passengerAmount):
+        self._totalRequests -= 1
+        self._totalPassengers -= passengerAmount
+        waitingTime = self._requestWaitingTime[requestId]
+        del self._requestWaitingTime[requestId]
+        return waitingTime
+    
     def completedRequest(self):
         self._totalCompletedRequests += 1
     
@@ -403,7 +403,6 @@ class Vehicle():
                 self.stats.updateMovement(data['routes'][0]['legs'][i]['distance'],data['routes'][0]['legs'][i]['duration'])  #The vehicle has reached the next stop - Add the statistcs
 
         return len(data['routes'][0]['legs']),routeTime #If the vehicle would have completed the route
-    
     def _completedSteps(self,data,timeLeft,completedLegs):
         for i in range(len(data["routes"][0]["legs"][completedLegs]["steps"])):
             timeLeft -= data["routes"][0]["legs"][completedLegs]["steps"][i]["duration"] #Advance a step
@@ -414,20 +413,28 @@ class Vehicle():
                 self.stats.updateMovement(data["routes"][0]["legs"][completedLegs]["steps"][i]["distance"],data["routes"][0]["legs"][completedLegs]["steps"][i]["duration"],steps=True) #The vehicle has moved a step - Add the statistcs
         raise Exception("Failed to find the step that the vehicle is on") #Calculations are wrong 
     
-    def addRequestToRoute(self, request):
+    def addRequestToRoute(self, request, waitingTime=0):
+
         if request.getPassengerAmount() + self.currentCapacity > self.capacity: #Check Passengers Limit
             Exception("Request exceeds capacity of vehicle")
-      
-        self.route.handleAddRequest(request,self.currentPosition) #Add request to route
+    
         requestId = request.getId()
         self.currentCapacity += request.getPassengerAmount() #Update the amount of passengers in the vehicle
         request.changeState("SCHEDULED") #Change the state
         # print("Added Request id: ", requestId)
-
-        self.stats.acceptRequest(requestId,request.getPassengerAmount()) #Update the statistics
-
+        self.stats.acceptRequest(requestId,request.getPassengerAmount(), currentWaitingTime=waitingTime) #Update the statistics
         self.stats.waitingReuqestList[requestId] = request
-
+    def removeRequestFromRoute(self,request):
+        #Check that I do not drop below 0 capacity - that would be illegal 
+        if request.getPassengerAmount() > self.currentCapacity:
+            Exception("Request exceeds capacity of vehicle")
+        
+        requestId = request.getId()
+        self.currentCapacity -= request.getPassengerAmount() #Update the amount of passengers in the vehicle
+        currentWaitingTime = self.stats.removeRequest(requestId, request.getPassengerAmount()) #Update the statistics
+        del self.stats.waitingReuqestList[requestId]
+        return currentWaitingTime
+    
     def arrivedAtNextStop(self, time):
         cords = self.route.handleNextArrival()
         requestId = cords.getRequestId()
@@ -448,7 +455,6 @@ class Vehicle():
             self.currentCapacity -= self.stats.onGoingRequestList[requestId].getPassengerAmount() #Update the amount of passengers in the vehicle
             del self.stats.onGoingRequestList[requestId] #Remove the request from the onGoing list
             self.currentPosition = Cords(cords.getLatitude(), cords.getLongitude()) #Update the position of the vehicle 
-
             self.stats.completedRequest() #Update the statistics
         return cords
     

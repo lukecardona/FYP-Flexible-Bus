@@ -124,6 +124,8 @@ class BusHandler():
     def acceptRequest(self, vehicleIndex):
         self.vehicles[vehicleIndex].route.routeList.insertAtEnd(self.currentRequest.origin)
         self.vehicles[vehicleIndex].route.routeList.insertAtEnd(self.currentRequest.destination)
+        self.vehicles[vehicleIndex].addRequestToRoute(self.currentRequest)
+
     def checkBrokenTimeConstraints(self, vehicleIndex):
         vehicleRoute = self.vehicles[vehicleIndex].route.getListOfCords()
         routeString = ""
@@ -160,6 +162,7 @@ class BusHandler():
             for vehicle in self.vehicles:
                 vehicle.move(timeDifference) #Move the vehicle to the next request
             self.currentRequestIndex += 1
+            self.currentRequest = self.requests[self.currentRequestIndex] #Set the current request to the next request
             return False
         else:
             return True
@@ -228,9 +231,11 @@ class MultiObjectiveTabuSearch:
     def run(self):
         end = False
         while end == False:
+            print("Previous Request: " +str(self.busHandler.getCurrentRequest()))
             solutionKM = self._handleMultipleObjectiveDARP()
             self.busHandler = copy.deepcopy(solutionKM)
             end = self.busHandler.moveToNextRequest()
+            print("Current Request: " +str(self.busHandler.getCurrentRequest()))
             #Advance the request to the next one and calculate the bus movements 
         print("Run Excetued Successfully")  
     def _handleMultipleObjectiveDARP(self):
@@ -358,11 +363,11 @@ class MultiObjectiveTabuSearch:
             currentOriginIndex = copyBusHandler.vehicles[vehicle].route.routeList.getIndex(request.origin)
             
             #If made it to the start of the route
-            if currentOriginIndex == 0:
+            if currentOriginIndex <= 0:
                 break
 
             #Swap the origin with the previous node
-            copyBusHandler.vehicles[vehicle].route.routeList.swapNodes(currentOriginIndex, currentOriginIndex-1)
+            copyBusHandler.vehicles[vehicle].route.routeList.switchNodes(currentOriginIndex, currentOriginIndex-1)
 
             #Check if the time constraints are broken
             if copyBusHandler.checkBrokenTimeConstraints(vehicle):
@@ -390,7 +395,16 @@ class MultiObjectiveTabuSearch:
 
                     solutionCopy = copy.deepcopy(solution)
                     #Swap the two points
-                    solutionCopy.vehicles[vehicle.getId()].route.routeList.switchNodes(i,j)
+                    try:
+                        solutionCopy.vehicles[vehicle.getId()].route.routeList.switchNodes(i,j)
+                    except Exception as e:
+                        print(e)
+                        print(f"Vehicle: {vehicle.getId()} RouteSize: {vehicle.getRouteSize()}")
+                        print(f"Route Len: {len(vehicle.route.routeList.getListOfCords())}")
+                        print(f"i: {i} j: {j}")
+                        print(f"Route: {vehicle.route.routeList.getListOfCords()}")
+                        #Terminate the program
+                        exit()
                     
                     if not solutionCopy.checkBrokenTimeConstraints(vehicle.getId()) and solutionCopy.maintainRequestOrder(vehicle.getId()):
                         solutionCopy.totalKMDistance = solutionCopy.getTotalDistance()
@@ -412,8 +426,11 @@ class MultiObjectiveTabuSearch:
                         solutionCopy.vehicles[vehicle2.getId()].route.routeList.insertAtStart(route[requestPairs[requestId][0]])
                         #Delete the nodes from the original vehicle
                         if not solutionCopy.checkBrokenTimeConstraints(vehicle2.getId()):
+                            request = solutionCopy.requests[requestId]
                             solutionCopy.vehicles[vehicle.getId()].route.routeList.deleteNode(route[requestPairs[requestId][0]])
                             solutionCopy.vehicles[vehicle.getId()].route.routeList.deleteNode(route[requestPairs[requestId][1]])
+                            waitingTime = solutionCopy.vehicles[vehicle.getId()].removeRequestFromRoute(request)
+                            solutionCopy.vehicles[vehicle2.getId()].addRequestToRoute(request, waitingTime=waitingTime)
                             solutionCopy.totalKMDistance = solutionCopy.getTotalDistance()
                             solutionCopy.totalDeadHeadDistance = solutionCopy.getTotaLDeadHeadDistance()
                             solutionCopy.totalVehicleUsage = solutionCopy.getTotalVehicleUtilization()
@@ -429,11 +446,12 @@ class MultiObjectiveTabuSearch:
                         if not solutionCopy2.checkBrokenTimeConstraints(vehicle2.getId()):
                             solutionCopy2.vehicles[vehicle.getId()].route.routeList.deleteNode(route[requestPairs[requestId][1]])
                             solutionCopy2.vehicles[vehicle.getId()].route.routeList.deleteNode(route[requestPairs[requestId][0]])
+                            waitingTime = solutionCopy2.vehicles[vehicle.getId()].removeRequestFromRoute(request)
+                            solutionCopy2.vehicles[vehicle2.getId()].addRequestToRoute(request, waitingTime=waitingTime)
                             solutionCopy2.totalKMDistance = solutionCopy2.getTotalDistance()
                             solutionCopy2.totalDeadHeadDistance = solutionCopy2.getTotaLDeadHeadDistance()
                             solutionCopy2.totalVehicleUsage = solutionCopy2.getTotalVehicleUtilization()
                             candidateList.append(solutionCopy2)
- 
         return candidateList
 
 tabuSearch = MultiObjectiveTabuSearch()

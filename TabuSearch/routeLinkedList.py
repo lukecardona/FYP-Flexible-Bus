@@ -20,6 +20,9 @@ class RouteNode:
     
     def getRequestId(self):
         return self.cords.getRequestId()
+    
+    def getTimeWindow(self):
+        return self.cords.getTimeWindow()
 
 class RouteLinkedList:
     def __init__(self):
@@ -71,13 +74,7 @@ class RouteLinkedList:
             temp.next = newNode
             self.size += 1
 
-    def switchNodes(self, cords1, cords2):
-
-        index1 = self.getIndex(cords1)
-        index2 = self.getIndex(cords2)
-
-        print(index1, index2)
-
+    def switchNodes(self, index1, index2):
         if index1 == -1 or index2 == -1:
             raise ValueError("Invalid requests id or cordinates given")
         
@@ -91,7 +88,7 @@ class RouteLinkedList:
         prev1 = prev2 = None
         node1 = node2 = self.head
 
-        for i in range(max(index1, index2) + 1):
+        for i in range(max(index1, index2)):
             if i < index1:
                 prev1 = node1
                 node1 = node1.next
@@ -158,6 +155,11 @@ class RouteLinkedList:
             print("List is empty")
         else:
             temp = self.head
+            if temp.cords == cords:
+                self.head = self.head.next
+                self.size -= 1
+                return
+
             while temp.next != None:
                 if temp.next.cords == cords:
                     temp.next = temp.next.next
@@ -192,7 +194,7 @@ class RouteLinkedList:
             Warning("Request Id Pair not found")
 
     def getSize(self):
-        return self.size
+        return len(self.getListOfCords())
     
     def getListOfCords(self):
         temp = self.head

@@ -90,6 +90,7 @@ class GymBusHandler(BusHandler):
         for vehicle in self.vehicles:
             distanceReward += ((vehicle.getDistanceTravelled()*-1)/1000)
             waitingTimeReward += ((vehicle.getRequestWaitingTime()*-1)/60)
+            #Add negative rewards: the extra time that a bus travels from a request origin to destination is penalized 
 
         reward = acceptedReward + distanceReward + waitingTimeReward
         return reward
@@ -140,10 +141,10 @@ class BusHandler(gym.Env):
         self.numberOfBuses = numberOfBuses
         self.numberOfRequests = numberOfRequests
        
-        self.action_space = spaces.MultiDiscrete([2, self.numberOfBuses])
+        self.action_space = spaces.MultiDiscrete([2, self.numberOfBuses]) #Consider a single discrete space where 0 is reject and the rest are accept with bus Index 
         
         self.observation_space = spaces.Dict({
-            "request": spaces.Box(low=0, high=90, shape=(5,), dtype=np.float32),
+            "request": spaces.Box(low=0, high=90, shape=(5,), dtype=np.float32), #?Dictionary or box space of the unattended requests?
             "buses": spaces.Dict({
                 "locations": spaces.Box(low=0, high=90, shape=(self.numberOfBuses,2), dtype=np.float32),
                 "passenger_counts": spaces.Box(low=0, high=self.busHandler.getCapacity(), shape=(self.numberOfBuses,), dtype=np.int8),
