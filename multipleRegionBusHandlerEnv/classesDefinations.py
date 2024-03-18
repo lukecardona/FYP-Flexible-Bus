@@ -366,7 +366,7 @@ class BusStatistics():
     def getDistanceTravelled(self):
         return self._currentDistance
 class Vehicle():
-    def __init__(self, vehicle_id, capacity, origin):
+    def __init__(self, vehicle_id, capacity, origin, cluster):
         self.vehicle_id = vehicle_id
         self.capacity = capacity
         self.currentCapacity = 0
@@ -374,6 +374,7 @@ class Vehicle():
         self.state = VEHICLESTATES["IDLE"]
         self.route = Route()
         self.stats = BusStatistics()
+        self.cluster = cluster
 
     def __str__(self):
         return "Vehicle: id: {}, currentPassengers: {}, route_size: {}, currentPosition: ({})".format(self.vehicle_id, self.currentCapacity, self.route.getSize(), self.currentPosition)
