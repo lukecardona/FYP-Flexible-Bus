@@ -53,7 +53,7 @@ class BusHandler():
         self.clusterData = self._getClusterData()
         self.vehicles = self._initVehiles(vehicleAmount)
         self.requests = self._initRequests(numberOfRequests)
-        # self.currentRequest = self.requests[0]
+        self.currentRequest = self.requests[0]
         self.currentRequestIndex = 0
         self.rejectedRequests = []
         self.acceptedRequests = [] 
@@ -84,7 +84,6 @@ class BusHandler():
         self.clusterData = json.load(open(BUS_STOP_DATA_PATH))
         self.clusterAmount = self.clusterData["clusters"]
         return self.clusterData
-
     def _initVehiles(self, vehicleAmount):
         vehicles = []
         if vehicleAmount < self.clusterAmount:
@@ -95,8 +94,8 @@ class BusHandler():
         for cluster in self.clusterData["cluster_data"]:
             busStopsClusterCount[cluster] = len(self.clusterData["cluster_data"][cluster])
         
-        totlaBusStops = sum(busStopsClusterCount.values())
-        clusterRatios = {cluster: items/totlaBusStops for cluster, items in busStopsClusterCount.items()}
+        self.totlaBusStops = sum(busStopsClusterCount.values())
+        clusterRatios = {cluster: items/self.totlaBusStops for cluster, items in busStopsClusterCount.items()}
         
         #Distribute the bus stops to the vehicles
         distributedVehicles = {cluster: 1 for cluster in self.clusterData["cluster_data"]}
@@ -134,10 +133,49 @@ class BusHandler():
                 veh_id += 1
         
         return vehicles
-
     def _initRequests(self, numberOfRequests):
-        pass
-    
+        requestId = 0
+        requestList = []
+        timeIntervals = divide_time_interval(numberOfRequests)
+        for i in range(numberOfRequests):
+            #Get two random indexes from all the bus stops 
+            r1 = random.randint(0, self.totlaBusStops)
+            r2 = random.randint(0, self.totlaBusStops)
+            while r1 == r2:
+                r2 = random.randint(0, self.totlaBusStops)
+            
+            #Check in which cluster r1 and r2 fall in
+            clusterZone_r1, clusterZone_r2 = None, None
+            lat1, lon1, lat2, lon2 = None, None, None, None
+
+            for cluster in self.clusterData["cluster_data"]:
+                if r1 < len(self.clusterData["cluster_data"][cluster]):
+                    clusterZone_r1 = cluster
+                    lat1 = self.clusterData["cluster_data"][cluster][r1]["lat"]
+                    lon1 = self.clusterData["cluster_data"][cluster][r1]["lon"]
+                    break
+                else:
+                    r1 -= len(self.clusterData["cluster_data"][cluster])
+            for cluster in self.clusterData["cluster_data"]:
+                if r2 < len(self.clusterData["cluster_data"][cluster]):
+                    clusterZone_r2 = cluster
+                    lat2 = self.clusterData["cluster_data"][cluster][r2]["lat"]
+                    lon2 = self.clusterData["cluster_data"][cluster][r2]["lon"]
+                    break
+                else:
+                    r2 -= len(self.clusterData["cluster_data"][cluster])
+            #Get the coordinates of the two bus stops
+
+            #Create the request Cords
+            reqPickup = Cords(lat1, lon1)
+            reqDropoff = Cords(lat2, lon2)
+
+            #Create the request
+            requestList.append(Request(requestId, reqPickup, reqDropoff, timeIntervals[i],random.randint(1, 3),clusterZone_r1,clusterZone_r2))
+
+            #Increment the requestId
+            requestId += 1
+        return requestList
     def _initMap(self):
         self.map = Map(center=[35.908915,14.442416], zoom=11)
         display(self.map)
@@ -147,6 +185,22 @@ class BusHandler():
         for layer in self.map.layers:
             if not isinstance(layer, ipyleaflet.TileLayer):
                 self.map.remove_layer(layer)
+    
+    #OBSERVATION SPACE FUNCTIONS
+    def _getBusRoute(self):
+        pass
+    def getRequestObservation(self):
+        pass
+    def getPassengerCountsObservation(self):
+        pass
+    def getBusesRoutesObservation(self):
+        pass
+    
+    #Rewards FUNCTIONS
+    def getReward(self):
+        pass
+    
+    #Rendering Functions
     def renderRoutes(self):
         self._clearMap()
         for i,vehicle in enumerate(self.vehicles):

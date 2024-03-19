@@ -26,6 +26,11 @@ VEHICLESTATES = {
     "IDLE":0,
     "MOVING":1,
 }
+STOPSTATES = {
+    "ORIGIN":0,
+    "DESTINATION":1,
+    "SWITCH":2
+}
 
 TIMEWINDOW = 30*60 #30 MINUTES TO SECONDS 
 
@@ -69,21 +74,21 @@ class Cords:
     def getLongitude(self):
         return self.longitude
 class Request_Cords(Cords):
-    def __init__(self, latidude, longitude, request_id, timeWindow, passengerAmount, start):
+    def __init__(self, latidude, longitude, request_id, timeWindow, clusterZone, start):
         super().__init__(latidude, longitude)
         self.start = start
         self.request_id = request_id
         self.timeWindow = timeWindow
-        self.passengerAmount = passengerAmount
+        self.clusterZone = clusterZone
     
     def __str__(self):
-        return "Req_Id: " + str(self.request_id) + ", lat: "+ str(self.latidude) + ", long: " + str(self.longitude) + ", " + str(self.start)
+        return "Req_Id: " + str(self.request_id) + ", lat: "+ str(self.latidude) + ", cluster:"+str(self.clusterZone)+ ", long: " + str(self.longitude) + ", " + str(self.start)
     
     def __repr__(self):
         return "["+self.__str__()+"]"
     
     def __eq__(self, requestCord):
-        if self.request_id == requestCord:
+        if self.request_id == requestCord and self.start == requestCord.start:
             return True
         else:
             return False
@@ -100,18 +105,18 @@ class Request_Cords(Cords):
     def getRequestId(self):
         return self.request_id
 
-    def getPassengerAmount(self):
-        return self.passengerAmount
+    def getClusterZone(self):
+        return self.clusterZone
     
     def getTimeWindow(self):
         return self.timeWindow
 class Request():
-    def __init__(self, request_id, origin, destination, time, passengerAmount):
+    def __init__(self, request_id, origin, destination, time, passengerAmount, clusterZoneOrigin, clusterZoneDestination):
         self.request_id = request_id
         self.time = time
         originTimeWindow, destinationTimeWindow = self._getTimeWindows(origin, destination, time)
-        self.origin = Request_Cords(origin.getLatitude(), origin.getLongitude(), self.request_id, originTimeWindow, passengerAmount, True)
-        self.destination = Request_Cords(destination.getLatitude(), destination.getLongitude(), self.request_id, destinationTimeWindow, passengerAmount, False)
+        self.origin = Request_Cords(origin.getLatitude(), origin.getLongitude(), self.request_id, originTimeWindow, clusterZoneOrigin, True)
+        self.destination = Request_Cords(destination.getLatitude(), destination.getLongitude(), self.request_id, destinationTimeWindow, clusterZoneDestination, False)
         self.state = REQUESTSTATES["NOT_CALLED"]
         self.passengerAmount = passengerAmount
 
@@ -193,18 +198,18 @@ class Route:
                 validPermuations.append(perm)
         return validPermuations
 
-    def _findShortestRoute(self, routes, vehiclePosition):
-        count = 0
-        shortestDistance = float('inf')
-        shortestRoute = None
-        for route in routes:
-            newDist = self.calculateTotalDistance(vehiclePosition, route=route)
-            # print (f"Route {count}: distance: {newDist}")
-            if newDist < shortestDistance:
-                shortestDistance = newDist
-                shortestRoute = route
-            count += 1
-        return shortestRoute
+    # def _findShortestRoute(self, routes, vehiclePosition):
+    #     count = 0
+    #     shortestDistance = float('inf')
+    #     shortestRoute = None
+    #     for route in routes:
+    #         newDist = self.calculateTotalDistance(vehiclePosition, route=route)
+    #         # print (f"Route {count}: distance: {newDist}")
+    #         if newDist < shortestDistance:
+    #             shortestDistance = newDist
+    #             shortestRoute = route
+    #         count += 1
+    #     return shortestRoute
 
     def _updateRoute(self, route):
         self.routeList = RouteLinkedList()
@@ -247,7 +252,7 @@ class Route:
     #     shortestRoute = self._findShortestRoute(validPermuations,vehiclePosition) #Find the shortest route
     #     self._updateRoute(shortestRoute) #Update the route
 
-    def handleNextArrival(self):
+    def handleNextArrival(self): #Requeire Change 
         cordPoint = self.routeList.deleteAtStart()
         return cordPoint
     
@@ -288,6 +293,13 @@ class Route:
     def getListOfCords(self):
         return self.routeList.getListOfCords()
     
+    def handleAddRequest(self, request, indexOrgin, indexDestination): #CHANGED APPRIOPRIATELY
+        if indexOrgin > indexDestination:
+            raise Exception("Origin index is greater than destination index")
+
+        self.routeList.insertAtIndex(request.origin, indexOrgin)
+        self.routeList.insertAtIndex(request.destination, indexDestination+1)
+
     def getRouteHead(self):
         return self.routeList.head
     
@@ -375,6 +387,7 @@ class Vehicle():
         self.route = Route()
         self.stats = BusStatistics()
         self.cluster = cluster
+        self.awaitingSwitch = {}
 
     def __str__(self):
         return "Vehicle: id: {}, currentPassengers: {}, route_size: {}, currentPosition: ({})".format(self.vehicle_id, self.currentCapacity, self.route.getSize(), self.currentPosition)
@@ -409,32 +422,21 @@ class Vehicle():
                 self.stats.updateMovement(data["routes"][0]["legs"][completedLegs]["steps"][i]["distance"],data["routes"][0]["legs"][completedLegs]["steps"][i]["duration"],steps=True) #The vehicle has moved a step - Add the statistcs
         raise Exception("Failed to find the step that the vehicle is on") #Calculations are wrong 
     
-    def addRequestToRoute(self, request, waitingTime=0):
+    def addRequestToRoute(self, request, indexOrgin, indexDestination, waitingTime=0): #CHANGED APPRIOPRIATELY
 
         if request.getPassengerAmount() + self.currentCapacity > self.capacity: #Check Passengers Limit
             Exception("Request exceeds capacity of vehicle")
-    
         requestId = request.getId()
+        self.route.handleAddRequest(request, indexOrgin, indexDestination)
         self.currentCapacity += request.getPassengerAmount() #Update the amount of passengers in the vehicle
         request.changeState("SCHEDULED") #Change the state
         # print("Added Request id: ", requestId)
         self.stats.acceptRequest(requestId,request.getPassengerAmount(), currentWaitingTime=waitingTime) #Update the statistics
         self.stats.waitingReuqestList[requestId] = request
-    def removeRequestFromRoute(self,request):
-        #Check that I do not drop below 0 capacity - that would be illegal 
-        if request.getPassengerAmount() > self.currentCapacity:
-            Exception("Request exceeds capacity of vehicle")
-        
-        requestId = request.getId()
-        self.currentCapacity -= request.getPassengerAmount() #Update the amount of passengers in the vehicle
-        currentWaitingTime = self.stats.removeRequest(requestId, request.getPassengerAmount()) #Update the statistics
-        del self.stats.waitingReuqestList[requestId]
-        return currentWaitingTime
     
-    def arrivedAtNextStop(self, time):
+    def arrivedAtNextStop(self, time): #CHANGE APPRIOPRIATELY
         cords = self.route.handleNextArrival()
         requestId = cords.getRequestId()
-    
         self.stats.addRequestWaitingTime(time) #Update the statistics
 
         if cords.getStart() == True:
@@ -445,16 +447,20 @@ class Vehicle():
             
             #No need to add the passengers to the vehicle since they are acounted for in the addReuqestToRoute method
             self.currentPosition = Cords(cords.getLatitude(), cords.getLongitude()) #Update the position of the vehicle
+            return STOPSTATES["ORIGIN"]
         else:
-            self.stats.onGoingRequestList[requestId].changeState("COMPLETED") #Change the state
-            self.stats.completedRequestList[requestId] = self.stats.onGoingRequestList[requestId] #Add the request to the completed list
-            self.currentCapacity -= self.stats.onGoingRequestList[requestId].getPassengerAmount() #Update the amount of passengers in the vehicle
-            del self.stats.onGoingRequestList[requestId] #Remove the request from the onGoing list
-            self.currentPosition = Cords(cords.getLatitude(), cords.getLongitude()) #Update the position of the vehicle 
-            self.stats.completedRequest() #Update the statistics
-        return cords
+            if cords.getClusterZone() == self.cluster:
+                self.stats.onGoingRequestList[requestId].changeState("COMPLETED") #Change the state
+                self.stats.completedRequestList[requestId] = self.stats.onGoingRequestList[requestId] #Add the request to the completed list
+                self.currentCapacity -= self.stats.onGoingRequestList[requestId].getPassengerAmount() #Update the amount of passengers in the vehicle
+                del self.stats.onGoingRequestList[requestId] #Remove the request from the onGoing list
+                self.currentPosition = Cords(cords.getLatitude(), cords.getLongitude()) #Update the position of the vehicle 
+                self.stats.completedRequest() #Update the statistics
+                return STOPSTATES["DESTINATION"]
+            else: #Handle switch between clusters
+                return STOPSTATES["SWITCH"]
     
-    def move(self,timeDifference):
+    def move(self,timeDifference): 
         #Get the OSRM data for the whole route
         if self.route.getSize() == 0:
             self.stats.stayedIdle(timeDifference)
@@ -490,7 +496,7 @@ class Vehicle():
             currentCord = Cords(data['routes'][0]['legs'][completedLegs]['steps'][completedSteps]['maneuver']['location'][1], data['routes'][0]['legs'][completedLegs]['steps'][completedSteps]['maneuver']['location'][0])
         self.currentPosition = currentCord
 
-    def completeRoute(self):
+    def completeRoute(self): #Maybe requires changes
 
         if self.route.getSize() == 0:
             return 0
@@ -501,7 +507,10 @@ class Vehicle():
 
         for i in range(len(data['routes'][0]['legs'])):
             time += data['routes'][0]['legs'][i]['duration']
-            self.arrivedAtNextStop(data['routes'][0]['legs'][i]['duration'])
+            Req_state = self.arrivedAtNextStop(data['routes'][0]['legs'][i]['duration'])
+            if Req_state == STOPSTATES["SWITCH"]: #If it is an indication to switch clusters
+                pass
+
             self.stats.updateMovement(data['routes'][0]['legs'][i]['distance'],data['routes'][0]['legs'][i]['duration'])  #The vehicle has reached the next stop - Add the statistcs
             
         return time
